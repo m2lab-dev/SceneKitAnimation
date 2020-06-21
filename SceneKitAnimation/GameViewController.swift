@@ -2,8 +2,8 @@
 //  GameViewController.swift
 //  SceneKitAnimation
 //
-//  Created by 松岡正浩 on 2020/06/21.
-//  Copyright © 2020 松岡正浩. All rights reserved.
+//  Created by Matsuoka Masahiro on 2020/06/21.
+//  Copyright © 2020 Matsuoka Masahiro. All rights reserved.
 //
 
 import UIKit
@@ -12,104 +12,75 @@ import SceneKit
 
 class GameViewController: UIViewController {
 
+    /// オブジェクト追加用のルートノード
+    let rootNode = SCNNode()
+
     override func viewDidLoad() {
         super.viewDidLoad()
-        
+
         // create a new scene
-        let scene = SCNScene(named: "art.scnassets/ship.scn")!
-        
+        let scene = SCNScene()
+
         // create and add a camera to the scene
         let cameraNode = SCNNode()
         cameraNode.camera = SCNCamera()
         scene.rootNode.addChildNode(cameraNode)
-        
+
         // place the camera
         cameraNode.position = SCNVector3(x: 0, y: 0, z: 15)
-        
+
         // create and add a light to the scene
         let lightNode = SCNNode()
         lightNode.light = SCNLight()
         lightNode.light!.type = .omni
         lightNode.position = SCNVector3(x: 0, y: 10, z: 10)
         scene.rootNode.addChildNode(lightNode)
-        
+
         // create and add an ambient light to the scene
         let ambientLightNode = SCNNode()
         ambientLightNode.light = SCNLight()
         ambientLightNode.light!.type = .ambient
         ambientLightNode.light!.color = UIColor.darkGray
         scene.rootNode.addChildNode(ambientLightNode)
-        
-        // retrieve the ship node
-        let ship = scene.rootNode.childNode(withName: "ship", recursively: true)!
-        
-        // animate the 3d object
-        ship.runAction(SCNAction.repeatForever(SCNAction.rotateBy(x: 0, y: 2, z: 0, duration: 1)))
-        
+
+        // シーンにルートノードを追加する
+        scene.rootNode.addChildNode(rootNode)
+
+
         // retrieve the SCNView
         let scnView = self.view as! SCNView
-        
+
+        /* デバッグ用設定 */
+        // 背景を灰色に設定する
+        scnView.backgroundColor = UIColor.gray
+        // 現在の視点をユーザーが操作できるように設定
+        scnView.allowsCameraControl = true
+        // レンダリングパフォーマンス統計を表示する
+        scnView.showsStatistics = true
+        scnView.debugOptions = [
+            .showBoundingBoxes, // オブジェクトのバウンディングボックスを表示する
+            .showWireframe, // ワイヤーフレームを表示する
+            .showCameras, // 仮想カメラを表示する
+        ]
+
         // set the scene to the view
         scnView.scene = scene
-        
-        // allows the user to manipulate the camera
-        scnView.allowsCameraControl = true
-        
-        // show statistics such as fps and timing information
-        scnView.showsStatistics = true
-        
-        // configure the view
-        scnView.backgroundColor = UIColor.black
-        
-        // add a tap gesture recognizer
-        let tapGesture = UITapGestureRecognizer(target: self, action: #selector(handleTap(_:)))
-        scnView.addGestureRecognizer(tapGesture)
+
+        // 原点を追加する
+        rootNode.addChildNode(makeOriginNode())
+
+        // 座標軸を追加する
+        rootNode.addChildNode(makeAxisNode())
     }
-    
-    @objc
-    func handleTap(_ gestureRecognize: UIGestureRecognizer) {
-        // retrieve the SCNView
-        let scnView = self.view as! SCNView
-        
-        // check what nodes are tapped
-        let p = gestureRecognize.location(in: scnView)
-        let hitResults = scnView.hitTest(p, options: [:])
-        // check that we clicked on at least one object
-        if hitResults.count > 0 {
-            // retrieved the first clicked object
-            let result = hitResults[0]
-            
-            // get its material
-            let material = result.node.geometry!.firstMaterial!
-            
-            // highlight it
-            SCNTransaction.begin()
-            SCNTransaction.animationDuration = 0.5
-            
-            // on completion - unhighlight
-            SCNTransaction.completionBlock = {
-                SCNTransaction.begin()
-                SCNTransaction.animationDuration = 0.5
-                
-                material.emission.contents = UIColor.black
-                
-                SCNTransaction.commit()
-            }
-            
-            material.emission.contents = UIColor.red
-            
-            SCNTransaction.commit()
-        }
-    }
-    
+
     override var shouldAutorotate: Bool {
         return true
     }
-    
+
     override var prefersStatusBarHidden: Bool {
         return true
     }
-    
+
     override var supportedInterfaceOrientations: UIInterfaceOrientationMask {
         if UIDevice.current.userInterfaceIdiom == .phone {
             return .allButUpsideDown
@@ -117,5 +88,87 @@ class GameViewController: UIViewController {
             return .all
         }
     }
+}
 
+/// 追加するオブジェクト
+extension GameViewController {
+
+    /// 原点を作成する
+    func makeOriginNode() -> SCNNode {
+        let sphere = makeSphereNode(radius: 0.25)
+        sphere.position = SCNVector3(0, 0, 0)
+        return sphere
+    }
+
+    /// スフィア(球体)ノードを追加する
+    func makeSphereNode(radius: CGFloat = 1.0) -> SCNNode {
+        let sphere: SCNGeometry = SCNSphere(radius: radius)
+        let sphereNode = SCNNode(geometry: sphere)
+        return sphereNode
+    }
+
+    /// 座標軸ノードを作成する
+    func makeAxisNode() -> SCNNode {
+        let node = SCNNode()
+        node.name = "asix"
+
+        // x軸
+        node.addChildNode(makeXAxisNode())
+        // y軸
+        node.addChildNode(makeYAxisNode())
+        // z軸
+        node.addChildNode(makeZAxisNode())
+
+        return node
+    }
+
+    /// x軸ノードを作成する
+    func makeXAxisNode(radius: CGFloat = 0.1, height: CGFloat = 5.0, color: UIColor = .red) -> SCNNode {
+        let cylinderNode = makeCylinderNode(radius: radius, height: height, color: color)
+        // z軸を基準に90度(0.5π)回転する
+        cylinderNode.simdRotate(
+            by: simd_quatf(
+                angle: .pi * 0.5, // 回転角
+                axis: simd_normalize(simd_float3(0, 0, 1)) // 回転軸
+            ),
+            aroundTarget: simd_float3(0, 0, 0)
+        )
+        // 原点まで移動する
+        cylinderNode.position = SCNVector3(height * 0.5, 0, 0)
+        return cylinderNode
+    }
+
+    /// y軸ノードを作成する
+    func makeYAxisNode(radius: CGFloat = 0.1, height: CGFloat = 5.0, color: UIColor = .green) -> SCNNode {
+        let cylinderNode = makeCylinderNode(radius: radius, height: height, color: color)
+        // 原点まで移動する
+        cylinderNode.position = SCNVector3(0, height * 0.5, 0)
+        return cylinderNode
+    }
+
+    /// z軸ノードを作成する
+    func makeZAxisNode(radius: CGFloat = 0.1, height: CGFloat = 5.0, color: UIColor = .blue) -> SCNNode {
+        let cylinderNode = makeCylinderNode(radius: radius, height: height, color: color)
+        // x軸を基準に90度(0.5π)回転する
+        cylinderNode.simdRotate(
+            by: simd_quatf(
+                angle: .pi * 0.5, // 回転角
+                axis: simd_normalize(simd_float3(1, 0, 0)) // 回転軸
+            ),
+            aroundTarget: simd_float3(0, 0, 0)
+        )
+        // 原点まで移動する
+        cylinderNode.position = SCNVector3(0, 0, height * 0.5)
+        return cylinderNode
+    }
+
+    /// シリンダー(円柱)ノードを作成する
+    func makeCylinderNode(radius: CGFloat, height: CGFloat, color: UIColor = .white) -> SCNNode {
+        let cylinder = SCNCylinder(radius: radius, height: height)
+        let node = SCNNode(geometry: cylinder)
+        let material = SCNMaterial()
+        material.diffuse.contents = color
+        node.geometry?.firstMaterial = material
+        return node
+    }
 }

@@ -192,7 +192,7 @@
 			attributes = {
 				LastSwiftUpdateCheck = 1140;
 				LastUpgradeCheck = 1140;
-				ORGANIZATIONNAME = "松岡正浩";
+				ORGANIZATIONNAME = "Matsuoka Masahiro";
 				TargetAttributes = {
 					1005AB8A249F0076000A6210 = {
 						CreatedOnToolsVersion = 11.4.1;

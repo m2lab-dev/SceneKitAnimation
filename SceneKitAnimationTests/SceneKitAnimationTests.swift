@@ -2,8 +2,8 @@
 //  SceneKitAnimationTests.swift
 //  SceneKitAnimationTests
 //
-//  Created by 松岡正浩 on 2020/06/21.
-//  Copyright © 2020 松岡正浩. All rights reserved.
+//  Created by Matsuoka Masahiro on 2020/06/21.
+//  Copyright © 2020 Matsuoka Masahiro. All rights reserved.
 //
 
 import XCTest
